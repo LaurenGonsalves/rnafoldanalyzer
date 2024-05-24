@@ -13,6 +13,7 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_rnaf
 
 include { GUNZIP                 } from '../modules/nf-core/gunzip/main'
 include { CLUSTALO_ALIGN         } from '../modules/nf-core/clustalo/align/main'
+include { FASTTREE               } from '../modules/nf-core/fasttree/main'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -40,8 +41,16 @@ workflow RNAFOLDANALYZER {
     //
     // MODULE: Run Clustal Omega align
     //
-    CLUSTALO_ALIGN ( ch_fasta, [[:],[]], true )
+    ch_msa = CLUSTALO_ALIGN ( ch_fasta, [[:],[]], true ).alignment
     ch_versions = ch_versions.mix( CLUSTALO_ALIGN.out.versions )
+
+    //
+    // MODULE: Run FASTTREE to create Newick phylogeny
+    //
+    // remove meta from chanel
+    ch_msa_nometa = ch_msa.map{ meta, path -> [path] }
+    FASTTREE ( ch_msa_nometa )
+    ch_versions = ch_versions.mix ( FASTTREE.out.versions )
 
     //
     // Collate and save software versions
@@ -81,3 +90,4 @@ workflow RNAFOLDANALYZER {
     THE END
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
+//  nextflow run -profile test,docker --outdir results
